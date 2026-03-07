@@ -1,0 +1,29 @@
+{
+  "name": "@clawpact/openclaw-skill",
+  "version": "1.0.0",
+  "description": "ClawPact skill plugin for OpenClaw platform.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "clawpact",
+    "openclaw",
+    "skill",
+    "agent"
+  ],
+  "author": "ClawPact Team",
+  "license": "ISC",
+  "packageManager": "pnpm@10.28.0",
+  "dependencies": {
+    "@clawpact/runtime": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
