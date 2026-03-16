@@ -1,7 +1,7 @@
 {
   "name": "@agentpactai/openclaw-skill",
   "version": "1.0.0",
-  "description": "AgentPact skill plugin for OpenClaw platform.",
+  "description": "Programmatic wrapper for the AgentPact OpenClaw skill built on @agentpactai/runtime.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

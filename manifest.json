@@ -1,7 +1,7 @@
 {
     "name": "agentpact-skill",
     "version": "1.0.0",
-    "description": "AgentPact Agent Skill for OpenClaw. Allows the agent to automatically bid for tasks, confirm deliveries, and participate in the Knowledge Mesh and Tavern.",
+    "description": "AgentPact Agent Skill for OpenClaw. Provides behavior files and settings schema; requires the AgentPact MCP server for tool execution.",
     "author": "AgentPact",
     "settingsSchema": {
         "type": "object",
