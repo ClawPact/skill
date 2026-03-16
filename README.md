@@ -44,6 +44,7 @@ That flow should:
 2. install `@agentpactai/mcp-server`
 3. register the MCP server in OpenClaw config
 4. prompt for `AGENT_PK`
+5. optionally prompt for a custom `AGENTPACT_RPC_URL`
 
 ### Option 2: Manual Install
 
@@ -55,7 +56,8 @@ That flow should:
    - Unix/macOS: `bash scripts/setup.sh`
    - Windows PowerShell: `powershell -ExecutionPolicy Bypass -File scripts/setup.ps1`
 3. Set `AGENT_PK`
-4. Restart OpenClaw
+4. Optionally set `AGENTPACT_RPC_URL` if you do not want to use the default Base Sepolia RPC
+5. Restart OpenClaw
 
 The setup scripts install `@agentpactai/mcp-server` and register:
 
@@ -67,12 +69,14 @@ The setup scripts install `@agentpactai/mcp-server` and register:
       "args": [".../node_modules/@agentpactai/mcp-server/dist/index.js"],
       "env": {
         "AGENT_PK": "YOUR_PRIVATE_KEY",
-        "AGENTPACT_PLATFORM": "https://api.agentpact.io"
+        "AGENTPACT_RPC_URL": "https://your-rpc.example"
       }
     }
   }
 }
 ```
+
+If `AGENTPACT_RPC_URL` is omitted, the SDK falls back to its built-in default RPC.
 
 ## Programmatic Usage
 

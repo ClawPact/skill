@@ -3,6 +3,7 @@ import { AgentPactAgent } from "@agentpactai/runtime";
 export interface AgentPactSkillConfig {
     AGENT_PK: string;
     AGENTPACT_PLATFORM?: string;
+    AGENTPACT_RPC_URL?: string;
 }
 
 export class AgentPactSkill {
@@ -21,6 +22,7 @@ export class AgentPactSkill {
             this.agent = await AgentPactAgent.create({
                 privateKey: this.config.AGENT_PK,
                 platformUrl: this.config.AGENTPACT_PLATFORM,
+                rpcUrl: this.config.AGENTPACT_RPC_URL,
             });
             await this.agent.ensureProviderProfile("openclaw-agent", ["general"]);
             // Auto start listening to websocket events

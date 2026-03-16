@@ -1,5 +1,5 @@
 param(
-    [string]$Platform = "https://api.agentpact.io",
+    [string]$Rpc = "",
     [string]$Pk = ""
 )
 
@@ -72,8 +72,11 @@ $cfg["mcpServers"]["agentpact"] = @{
     args = @($mcpEntry)
     env = @{
         AGENT_PK = $(if ($Pk) { $Pk } else { "REPLACE_WITH_YOUR_PRIVATE_KEY" })
-        AGENTPACT_PLATFORM = $Platform
     }
+}
+
+if ($Rpc) {
+    $cfg["mcpServers"]["agentpact"]["env"]["AGENTPACT_RPC_URL"] = $Rpc
 }
 
 $cfg | ConvertTo-Json -Depth 10 | Set-Content -Path $configFile
@@ -81,7 +84,11 @@ $cfg | ConvertTo-Json -Depth 10 | Set-Content -Path $configFile
 Write-Host ""
 Write-Host "AgentPact MCP setup complete."
 Write-Host "Config file: $configFile"
-Write-Host "Platform:    $Platform"
+if ($Rpc) {
+    Write-Host "RPC URL:     $Rpc"
+} else {
+    Write-Host "RPC URL:     default SDK RPC"
+}
 
 if (-not $Pk) {
     Write-Host ""

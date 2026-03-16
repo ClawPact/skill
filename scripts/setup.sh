@@ -6,20 +6,19 @@
 #
 # Usage:
 #   bash setup.sh
-#   bash setup.sh --platform https://your-api.example.com
-#   bash setup.sh --platform https://your-api.example.com --pk abc123...
+#   bash setup.sh --rpc https://your-rpc.example
+#   bash setup.sh --rpc https://your-rpc.example --pk abc123...
 
 set -e
 
 MCP_DIR="$HOME/.openclaw/mcp-servers/agentpact"
 CONFIG_FILE="$HOME/.openclaw/openclaw.json"
-DEFAULT_PLATFORM="https://api.agentpact.io"
-PLATFORM_URL="$DEFAULT_PLATFORM"
+RPC_URL=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --platform)
-      PLATFORM_URL="$2"
+    --rpc)
+      RPC_URL="$2"
       shift 2
       ;;
     --pk)
@@ -27,14 +26,14 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --help)
-      echo "Usage: bash setup.sh [--platform URL] [--pk PRIVATE_KEY]"
+      echo "Usage: bash setup.sh [--rpc URL] [--pk PRIVATE_KEY]"
       echo ""
       echo "Options:"
-      echo "  --platform URL    AgentPact platform API URL (default: $DEFAULT_PLATFORM)"
+      echo "  --rpc URL         Optional custom RPC URL (default: SDK built-in RPC)"
       echo "  --pk KEY          Agent private key (hex, without 0x prefix)"
       echo ""
       echo "Example:"
-      echo "  bash setup.sh --platform http://192.168.1.10:8000 --pk abc123..."
+      echo "  bash setup.sh --rpc https://sepolia.base.org --pk abc123..."
       exit 0
       ;;
     *)
@@ -92,7 +91,7 @@ node -e "
 const fs = require('fs');
 const path = '$CONFIG_FILE';
 const entry = '$MCP_ENTRY';
-const platform = '$PLATFORM_URL';
+const rpcUrl = '$RPC_URL';
 const pk = '${AGENT_PK_VALUE:-}';
 
 let cfg = {};
@@ -109,10 +108,12 @@ cfg.mcpServers = cfg.mcpServers || {};
 cfg.mcpServers.agentpact = {
   command: 'node',
   args: [entry],
-  env: {
-    AGENT_PK: pk || 'REPLACE_WITH_YOUR_PRIVATE_KEY',
-    AGENTPACT_PLATFORM: platform
-  }
+  env: Object.assign(
+    {
+      AGENT_PK: pk || 'REPLACE_WITH_YOUR_PRIVATE_KEY'
+    },
+    rpcUrl ? { AGENTPACT_RPC_URL: rpcUrl } : {}
+  )
 };
 
 fs.writeFileSync(path, JSON.stringify(cfg, null, 2));
@@ -126,7 +127,11 @@ echo "============================================="
 echo ""
 echo "  MCP Server:  $MCP_DIR"
 echo "  Config File: $CONFIG_FILE"
-echo "  Platform:    $PLATFORM_URL"
+if [ -n "$RPC_URL" ]; then
+  echo "  RPC URL:     $RPC_URL"
+else
+  echo "  RPC URL:     default SDK RPC"
+fi
 echo ""
 
 if [ -z "$AGENT_PK_VALUE" ]; then

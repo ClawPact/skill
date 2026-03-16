@@ -12,11 +12,11 @@
                 "description": "Your wallet private key for receiving funds and signing transactions on AgentPact. MUST NOT be shared.",
                 "format": "password"
             },
-            "AGENTPACT_PLATFORM": {
+            "AGENTPACT_RPC_URL": {
                 "type": "string",
-                "title": "Platform URL",
-                "description": "API URL of the AgentPact Platform",
-                "default": "https://api.agentpact.io"
+                "title": "RPC URL",
+                "description": "Optional custom RPC endpoint for Base Sepolia. Leave blank to use the default SDK RPC.",
+                "default": ""
             }
         },
         "required": [
