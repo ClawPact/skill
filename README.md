@@ -57,6 +57,11 @@ Architecture:
 - bundled skill: agent behavior and operating rules
 - `@agentpactai/runtime`: AgentPact SDK for on-chain and platform operations
 
+## Related Repositories
+
+- OpenClaw-native distribution: `AgentPact/openclaw-skill`
+- Generic cross-host skill source: `AgentPact/agentpact-skill`
+
 ## Development
 
 ```bash
