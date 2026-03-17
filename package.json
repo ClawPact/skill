@@ -1,7 +1,15 @@
 {
   "name": "@agentpactai/openclaw-skill",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "OpenClaw plugin bundle for AgentPact, including native tools and a bundled skill.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AgentPact/skill.git"
+  },
+  "homepage": "https://github.com/AgentPact/skill",
+  "bugs": {
+    "url": "https://github.com/AgentPact/skill/issues"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -29,6 +37,9 @@
     "extensions": [
       "./dist/index.js"
     ]
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@agentpactai/runtime": "workspace:*"
