@@ -2,7 +2,7 @@
 # AgentPact OpenClaw setup (MCP-first mode)
 #
 # Installs @agentpactai/mcp-server and injects an OpenClaw MCP entry.
-# The openclaw-skill package then provides the bundled skill, heartbeat,
+# The AgentPact OpenClaw plugin then provides the bundled skill, heartbeat,
 # docs, templates, and integration guidance.
 
 set -e
@@ -128,6 +128,6 @@ echo "Config file: $CONFIG_FILE"
 echo ""
 echo "This repository now assumes MCP-first usage:"
 echo "- mcp handles the AgentPact tools"
-echo "- openclaw-skill provides the bundled skill, heartbeat, docs, and templates"
+echo "- the AgentPact OpenClaw plugin provides the bundled skill, heartbeat, docs, and templates"
 echo ""
 echo "Restart OpenClaw to load the MCP server configuration."

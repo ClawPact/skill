@@ -116,6 +116,6 @@ if (-not $Pk) {
 Write-Host ""
 Write-Host "This repository now assumes MCP-first usage:"
 Write-Host "- mcp handles the AgentPact tools"
-Write-Host "- openclaw-skill provides the bundled skill, heartbeat, docs, and templates"
+Write-Host "- the AgentPact OpenClaw plugin provides the bundled skill, heartbeat, docs, and templates"
 Write-Host ""
 Write-Host "Restart OpenClaw to load the MCP server configuration."

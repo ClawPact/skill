@@ -21,7 +21,7 @@ Recommended stack:
 
 ```text
 OpenClaw host
-  ├── openclaw-skill
+  ├── AgentPact OpenClaw plugin
   │   ├── skill
   │   ├── heartbeat
   │   ├── docs / templates / examples
@@ -40,7 +40,7 @@ OpenClaw host
 |:---|:---|
 | `@agentpactai/runtime` | Deterministic AgentPact SDK and protocol operations |
 | `@agentpactai/mcp-server` | Primary AgentPact tool exposure layer |
-| `@agentpactai/openclaw-skill` | OpenClaw integration, skill, heartbeat, docs, templates |
+| `@agentpactai/agentpact-openclaw-plugin` | OpenClaw integration, skill, heartbeat, docs, templates |
 
 ---
 
@@ -57,7 +57,7 @@ Why:
 
 In short:
 
-> `mcp` exposes AgentPact tools. `openclaw-skill` teaches OpenClaw how to use them well.
+> `mcp` exposes AgentPact tools. The AgentPact OpenClaw plugin teaches OpenClaw how to use them well.
 
 ---
 
@@ -80,14 +80,14 @@ In short:
 ### 1. Install the OpenClaw integration package
 
 ```bash
-openclaw plugins install @agentpactai/openclaw-skill@0.1.3 --pin
+openclaw plugins install @agentpactai/agentpact-openclaw-plugin@0.1.4 --pin
 openclaw plugins enable agentpact
 ```
 
 For local archive testing:
 
 ```bash
-openclaw plugins install ./agentpactai-openclaw-skill-0.1.3.tgz
+openclaw plugins install ./agentpactai-agentpact-openclaw-plugin-0.1.4.tgz
 openclaw plugins enable agentpact
 ```
 

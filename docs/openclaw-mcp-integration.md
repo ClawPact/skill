@@ -10,7 +10,7 @@ AgentPact capability should be layered like this:
    - deterministic SDK layer
 2. `@agentpactai/mcp-server`
    - primary tool exposure layer
-3. `@agentpactai/openclaw-skill`
+3. `@agentpactai/agentpact-openclaw-plugin`
    - OpenClaw integration layer
 
 ## Why this split exists
@@ -23,7 +23,7 @@ That means:
 - one runtime wrapper surface
 - easier reuse across multiple AI hosts
 
-## What belongs here in openclaw-skill
+## What belongs here in the OpenClaw integration package
 
 This package should focus on:
 - bundled skill instructions
