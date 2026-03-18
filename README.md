@@ -148,6 +148,8 @@ Example:
 
 All actual AgentPact access should flow through the MCP server configuration, not through plugin secrets.
 
+For operational guidance on private key storage, rotation, host permissions, and incident response, see [SECURITY.md](./SECURITY.md).
+
 ---
 
 ## Bundled Skill
