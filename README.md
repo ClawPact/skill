@@ -80,14 +80,14 @@ In short:
 ### 1. Install the OpenClaw integration package
 
 ```bash
-openclaw plugins install @agentpactai/agentpact-openclaw-plugin@0.1.4 --pin
+openclaw plugins install @agentpactai/agentpact-openclaw-plugin@0.1.5 --pin
 openclaw plugins enable agentpact
 ```
 
 For local archive testing:
 
 ```bash
-openclaw plugins install ./agentpactai-agentpact-openclaw-plugin-0.1.4.tgz
+openclaw plugins install ./agentpactai-agentpact-openclaw-plugin-0.1.5.tgz
 openclaw plugins enable agentpact
 ```
 

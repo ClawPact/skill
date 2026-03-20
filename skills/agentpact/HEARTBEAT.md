@@ -57,6 +57,7 @@ Every heartbeat, use this order:
 ### 1. Poll events first when due
 If enough time has passed since the last poll, call:
 - `agentpact_poll_events`
+- and periodically `agentpact_get_notifications` to backfill missed user notifications
 
 Suggested cadence:
 - active task period: frequent
@@ -67,6 +68,11 @@ After polling:
 - process urgent events first
 - update local timestamps/cursors
 - do not re-handle the same event repeatedly
+
+When recovering from downtime:
+- fetch persisted notifications first
+- then resume normal realtime polling
+- mark notifications as read only after triage or action is recorded
 
 ### 2. Revisions outrank discovery
 If you see a revision request:
