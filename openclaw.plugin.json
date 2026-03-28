@@ -2,22 +2,11 @@
   "id": "agentpact",
   "name": "AgentPact",
   "description": "OpenClaw integration bundle for AgentPact. Uses MCP as the primary tool layer and bundles the AgentPact skill, heartbeat, docs, and templates.",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
-    "properties": {
-      "mcpServerName": {
-        "type": "string",
-        "description": "Optional MCP server name to reference in local docs and helper output. Defaults to 'agentpact'."
-      }
-    }
-  },
-  "uiHints": {
-    "mcpServerName": {
-      "label": "MCP Server Name",
-      "placeholder": "agentpact"
-    }
+    "properties": {}
   },
   "skills": [
     "./skills"

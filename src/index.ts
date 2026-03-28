@@ -3,7 +3,6 @@ import * as path from "path";
 import * as os from "os";
 
 const PLUGIN_ID = "agentpact";
-const DEFAULT_MCP_SERVER_NAME = "agentpact";
 const DEFAULT_STATE = {
   lastEventPoll: 0,
   lastTaskDiscovery: 0,
@@ -100,31 +99,42 @@ function jsonResult(value: unknown) {
   return textResult(JSON.stringify(value, null, 2));
 }
 
-function getPluginConfig(api: PluginApi): JsonRecord {
-  return api?.config?.plugins?.entries?.[PLUGIN_ID]?.config ?? {};
+function getSystemHomeDir() {
+  return process.env.HOME || process.env.USERPROFILE || os.homedir();
 }
 
-function getMcpServerName(api: PluginApi) {
-  const config = getPluginConfig(api);
-  return typeof config.mcpServerName === "string" && config.mcpServerName.trim()
-    ? config.mcpServerName.trim()
-    : DEFAULT_MCP_SERVER_NAME;
+function expandTildePath(value: string) {
+  if (!value.startsWith("~")) return value;
+  const homeDir = getSystemHomeDir();
+  if (value === "~") return homeDir;
+  if (value.startsWith("~/") || value.startsWith("~\\")) {
+    return path.join(homeDir, value.slice(2));
+  }
+  return value;
+}
+
+function getOpenClawHome() {
+  return expandTildePath(process.env.OPENCLAW_HOME || getSystemHomeDir());
+}
+
+function getOpenClawStateDir() {
+  return expandTildePath(process.env.OPENCLAW_STATE_DIR || path.join(getOpenClawHome(), ".openclaw"));
 }
 
 function getOpenClawConfigPath() {
-  return path.join(os.homedir(), ".openclaw", "openclaw.json");
+  return expandTildePath(process.env.OPENCLAW_CONFIG_PATH || path.join(getOpenClawStateDir(), "openclaw.json"));
 }
 
-function getStatePath() {
-  return path.join(os.homedir(), ".openclaw", "workspace", "memory", "agentpact-state.json");
+function getOpenClawEnvPath() {
+  return path.join(getOpenClawStateDir(), ".env");
 }
 
-function getTasksRoot() {
-  return path.join(os.homedir(), ".openclaw", "workspace", "agentpact", "tasks");
-}
-
-function getTaskRoot(taskId: string) {
-  return path.join(getTasksRoot(), taskId.trim());
+function getDefaultWorkspaceRoot() {
+  const profile = normalizeText(process.env.OPENCLAW_PROFILE);
+  if (profile && profile !== "default") {
+    return path.join(getOpenClawStateDir(), `workspace-${profile}`);
+  }
+  return path.join(getOpenClawStateDir(), "workspace");
 }
 
 function normalizeText(value: unknown) {
@@ -203,8 +213,88 @@ async function loadOpenClawConfig() {
   }
 }
 
+async function getWorkspaceRoot(config?: JsonRecord) {
+  const resolvedConfig = config ?? (await loadOpenClawConfig()).config;
+  const configuredWorkspace = normalizeText(
+    resolvedConfig?.agents?.defaults?.workspace ?? resolvedConfig?.agent?.workspace
+  );
+  return configuredWorkspace ? expandTildePath(configuredWorkspace) : getDefaultWorkspaceRoot();
+}
+
+function getAgentPactEnvStatus() {
+  return {
+    agentPkConfigured: Boolean(process.env.AGENTPACT_AGENT_PK),
+    rpcUrlConfigured: Boolean(process.env.AGENTPACT_RPC_URL),
+    jwtTokenConfigured: Boolean(process.env.AGENTPACT_JWT_TOKEN),
+    platformOverrideConfigured: Boolean(process.env.AGENTPACT_PLATFORM),
+    agentTypeConfigured: Boolean(process.env.AGENTPACT_AGENT_TYPE),
+    capabilitiesConfigured: Boolean(process.env.AGENTPACT_CAPABILITIES),
+  };
+}
+
+function buildOpenClawStatusSummary(input: {
+  pluginEntry: JsonRecord | null;
+  envPath: string;
+  envFileExists: boolean;
+  envStatus: ReturnType<typeof getAgentPactEnvStatus>;
+  openclawConfigExists: boolean;
+  stateExists: boolean;
+  tasksRootExists: boolean;
+}) {
+  const issues: string[] = [];
+  const nextSteps: string[] = [];
+  const notes: string[] = [];
+
+  if (!input.openclawConfigExists) {
+    issues.push("OpenClaw config file was not found at the resolved config path.");
+  }
+
+  if (!input.pluginEntry) {
+    issues.push("Plugin entry 'agentpact' was not found in the resolved OpenClaw config.");
+    nextSteps.push("Run `openclaw plugins enable agentpact` to ensure the plugin is registered and enabled.");
+  } else if (input.pluginEntry.enabled === false) {
+    issues.push("Plugin entry 'agentpact' exists but is disabled.");
+    nextSteps.push("Run `openclaw plugins enable agentpact` and restart OpenClaw if needed.");
+  }
+
+  if (!input.envStatus.agentPkConfigured) {
+    issues.push("AGENTPACT_AGENT_PK is missing from the current OpenClaw process environment.");
+    nextSteps.push(`Add AGENTPACT_AGENT_PK to ${input.envPath} or another supported OpenClaw env source, then restart OpenClaw.`);
+  }
+
+  if (!input.envFileExists) {
+    notes.push(`Resolved per-instance env file does not exist yet: ${input.envPath}`);
+    if (!input.envStatus.agentPkConfigured) {
+      nextSteps.push(`Create ${input.envPath} if you want to use the recommended OpenClaw per-instance env file path.`);
+    }
+  }
+
+  if (input.envStatus.platformOverrideConfigured) {
+    notes.push("AGENTPACT_PLATFORM override is active for this OpenClaw process.");
+  }
+  if (input.envStatus.rpcUrlConfigured) {
+    notes.push("AGENTPACT_RPC_URL override is active for this OpenClaw process.");
+  }
+  if (!input.stateExists) {
+    notes.push("Local AgentPact state file does not exist yet. It will be created after the first helper/state action.");
+  }
+  if (!input.tasksRootExists) {
+    notes.push("Local AgentPact task workspace root does not exist yet. It will be created on first workspace initialization.");
+  }
+  if (issues.length === 0) {
+    notes.push("Core OpenClaw plugin/env prerequisites look healthy.");
+  }
+
+  return {
+    status: issues.length === 0 ? "ready" : "needs_attention",
+    issues,
+    nextSteps: Array.from(new Set(nextSteps)),
+    notes,
+  };
+}
+
 async function loadState() {
-  const statePath = getStatePath();
+  const statePath = path.join(await getWorkspaceRoot(), "memory", "agentpact-state.json");
   const current = await readJsonFile<JsonRecord>(statePath);
   const merged = {
     ...DEFAULT_STATE,
@@ -221,7 +311,7 @@ async function loadState() {
 }
 
 async function saveState(state: JsonRecord) {
-  const statePath = getStatePath();
+  const statePath = path.join(await getWorkspaceRoot(), "memory", "agentpact-state.json");
   await writeJsonFile(statePath, state);
   return statePath;
 }
@@ -230,7 +320,7 @@ async function ensureWorkspace(task: TaskWorkspaceInput) {
   const taskId = task.taskId.trim();
   if (!taskId) throw new Error("taskId is required");
 
-  const taskRoot = getTaskRoot(taskId);
+  const taskRoot = path.join(await getWorkspaceRoot(), "agentpact", "tasks", taskId);
   const proposalDir = path.join(taskRoot, "proposal");
   const workDir = path.join(taskRoot, "work");
   const deliveryDir = path.join(taskRoot, "delivery");
@@ -622,11 +712,11 @@ function buildHeartbeatPlan(state: JsonRecord) {
 }
 
 export default function register(api: PluginApi) {
-  api?.logger?.info?.("AgentPact OpenClaw integration loaded (MCP-first mode)");
+  api?.logger?.info?.("AgentPact OpenClaw integration loaded (official OpenClaw surfaces)");
 
   api.registerTool({
     name: "agentpact_openclaw_help",
-    description: "Explain how the AgentPact OpenClaw integration works in MCP-first mode and what to configure.",
+    description: "Explain how the AgentPact OpenClaw integration works with the official OpenClaw plugin and gateway configuration surfaces.",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -634,12 +724,10 @@ export default function register(api: PluginApi) {
     },
     optional: true,
     execute: async () => {
-      const mcpServerName = getMcpServerName(api);
+      const envPath = getOpenClawEnvPath();
       return textResult(
         [
-          "AgentPact OpenClaw integration is running in MCP-first mode.",
-          "",
-          `Expected MCP server name: ${mcpServerName}`,
+          "AgentPact OpenClaw integration is running through the official OpenClaw plugin surfaces.",
           "",
           "What this plugin now provides:",
           "- bundled AgentPact skill files",
@@ -649,8 +737,13 @@ export default function register(api: PluginApi) {
           "- local state / idempotency helpers",
           "- triage / revision / delivery preparation helpers",
           "",
-          "What provides the actual AgentPact tools:",
-          "- @agentpactai/mcp-server",
+          "Where user-editable AgentPact values should live for this running OpenClaw instance:",
+          `- ${envPath}`,
+          "- if OpenClaw path overrides are active, this path may differ from the default ~/.openclaw/.env",
+          "",
+          "Current repository posture:",
+          "- do not add unsupported mcpServers blocks to openclaw.json for this package",
+          "- use the plugin install plus gateway env path documented in the repository",
         ].join("\n")
       );
     },
@@ -658,7 +751,7 @@ export default function register(api: PluginApi) {
 
   api.registerTool({
     name: "agentpact_openclaw_status",
-    description: "Check MCP-related OpenClaw configuration, local state file presence, and task workspace root.",
+    description: "Check OpenClaw plugin/env readiness, local state file presence, and task workspace root.",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -666,22 +759,41 @@ export default function register(api: PluginApi) {
     },
     optional: true,
     execute: async () => {
-      const mcpServerName = getMcpServerName(api);
       const { configPath, exists, config } = await loadOpenClawConfig();
-      const mcpServers = config?.mcpServers ?? {};
-      const mcpEntry = mcpServers?.[mcpServerName];
-      const statePath = getStatePath();
-      const taskRoot = getTasksRoot();
+      const workspaceRoot = await getWorkspaceRoot(config);
+      const pluginEntry = config?.plugins?.entries?.[PLUGIN_ID] ?? null;
+      const pluginConfig = pluginEntry?.config ?? null;
+      const envPath = getOpenClawEnvPath();
+      const envFileExists = await pathExists(envPath);
+      const statePath = path.join(workspaceRoot, "memory", "agentpact-state.json");
+      const taskRoot = path.join(workspaceRoot, "agentpact", "tasks");
       const stateExists = await pathExists(statePath);
       const taskRootExists = await pathExists(taskRoot);
+      const agentPactEnvStatus = getAgentPactEnvStatus();
+      const summary = buildOpenClawStatusSummary({
+        pluginEntry,
+        envPath,
+        envFileExists,
+        envStatus: agentPactEnvStatus,
+        openclawConfigExists: exists,
+        stateExists,
+        tasksRootExists: taskRootExists,
+      });
 
       return jsonResult({
-        mode: "mcp-first",
+        mode: "official-openclaw-surfaces",
+        openclawHome: getOpenClawHome(),
+        openclawStateDir: getOpenClawStateDir(),
         openclawConfigPath: configPath,
         openclawConfigExists: exists,
-        expectedMcpServerName: mcpServerName,
-        mcpServerConfigured: Boolean(mcpEntry),
-        mcpServerConfig: mcpEntry ?? null,
+        openclawEnvPath: envPath,
+        openclawEnvExists: envFileExists,
+        workspaceRoot,
+        pluginEntryPresent: Boolean(pluginEntry),
+        pluginEntry,
+        pluginConfig,
+        agentPactEnvStatus,
+        summary,
         statePath,
         stateExists,
         tasksRoot: taskRoot,
@@ -847,7 +959,7 @@ export default function register(api: PluginApi) {
           summary: params.summary || params.title,
           publicMaterials: params.publicMaterials,
         });
-        const triagePath = path.join(getTaskRoot(params.taskId), "triage.json");
+        const triagePath = path.join(await getWorkspaceRoot(), "agentpact", "tasks", params.taskId, "triage.json");
         await writeJsonFile(triagePath, {
           ...triage,
           title: params.title ?? "",
@@ -888,7 +1000,7 @@ export default function register(api: PluginApi) {
           ? "review_then_execute"
           : "execute_revision";
 
-      const revisionDir = path.join(getTaskRoot(params.taskId), "revisions", `rev-${revisionNumber}`);
+      const revisionDir = path.join(await getWorkspaceRoot(), "agentpact", "tasks", params.taskId, "revisions", `rev-${revisionNumber}`);
       await ensureDir(revisionDir);
       const analysisPath = path.join(revisionDir, "analysis.md");
       await writeMarkdown(analysisPath, [
@@ -967,7 +1079,7 @@ export default function register(api: PluginApi) {
         category: params.category,
         status: "working",
       });
-      const taskRoot = getTaskRoot(params.taskId);
+      const taskRoot = path.join(await getWorkspaceRoot(), "agentpact", "tasks", params.taskId);
       const deliveryDir = path.join(taskRoot, "delivery");
       const manifestPath = path.join(deliveryDir, "manifest.json");
       const notesPath = path.join(deliveryDir, "notes.md");
@@ -1040,7 +1152,7 @@ export default function register(api: PluginApi) {
         status: "confirmation_pending",
       });
       const review = analyzeConfirmationDelta(params);
-      const reviewPath = path.join(getTaskRoot(params.taskId), "confirmation-review.md");
+      const reviewPath = path.join(await getWorkspaceRoot(), "agentpact", "tasks", params.taskId, "confirmation-review.md");
       await writeMarkdown(reviewPath, [
         "# Confirmation Review",
         "",

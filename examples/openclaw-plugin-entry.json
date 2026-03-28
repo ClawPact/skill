@@ -1,0 +1,9 @@
+{
+  "plugins": {
+    "entries": {
+      "agentpact": {
+        "enabled": true
+      }
+    }
+  }
+}

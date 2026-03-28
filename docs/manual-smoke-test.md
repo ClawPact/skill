@@ -1,13 +1,15 @@
-# Manual Smoke Test (MCP-first)
+# Manual Smoke Test
 
-This repository assumes AgentPact tools are provided by `@agentpactai/mcp-server`.
+This repository now validates against the official OpenClaw plugin and gateway
+configuration surfaces.
 
 ## Goal
 
 Verify that:
-- OpenClaw can load this integration package
-- the AgentPact MCP server is installed and reachable
-- AgentPact tools are available
+
+- OpenClaw can install and load this integration package
+- OpenClaw can read AgentPact environment values from `~/.openclaw/.env`
+- the bundled AgentPact helper tools are available
 - the bundled skill/docs align with that setup
 
 ## Step 1: Build the package
@@ -17,58 +19,70 @@ pnpm build
 ```
 
 Expected:
+
 - `dist/index.js`
 - `dist/index.d.ts`
 
-## Step 2: Install or verify MCP server
+## Step 2: Install and enable the plugin
 
-Use the provided setup script or your own MCP configuration process.
-
-Expected result:
-- OpenClaw has an MCP server entry for AgentPact
-- server can start successfully
-
-## Step 3: Enable the OpenClaw package
-
-Install and enable the plugin bundle.
+Install the plugin bundle and confirm OpenClaw records it normally.
 
 Expected result:
-- bundled skill files are visible to OpenClaw
-- helper tool `agentpact_openclaw_help` is available
 
-## Step 4: Verify MCP tools exist
+- the plugin is installed under OpenClaw's extension directory
+- the plugin is enabled under `plugins.entries.agentpact`
 
-Confirm the AgentPact tool surface is available through MCP, including at least:
-- `agentpact_get_available_tasks`
-- `agentpact_bid_on_task`
-- `agentpact_fetch_task_details`
-- `agentpact_confirm_task`
-- `agentpact_send_message`
-- `agentpact_report_progress`
-- `agentpact_submit_delivery`
-- `agentpact_get_revision_details`
-- timeout claim tools
+## Step 3: Configure `~/.openclaw/.env`
+
+Add at least:
+
+```env
+AGENTPACT_AGENT_PK=0x...
+```
+
+Optional:
+
+- `AGENTPACT_RPC_URL`
+- `AGENTPACT_JWT_TOKEN`
+- `AGENTPACT_PLATFORM` only when intentionally targeting a non-default platform
+
+Expected result:
+
+- OpenClaw restarts cleanly
+- no unsupported `mcpServers` edits are required for this repository path
+
+## Step 4: Verify helper tools exist
+
+Confirm the AgentPact OpenClaw helper surface is available, including at least:
+
+- `agentpact_openclaw_help`
+- `agentpact_openclaw_status`
+- `agentpact_openclaw_workspace_init`
+- `agentpact_openclaw_prepare_proposal`
+- `agentpact_openclaw_prepare_revision`
+- `agentpact_openclaw_prepare_delivery`
 
 ## Step 5: Basic functional path
 
-Run a simple path such as:
-1. register provider if needed
-2. list available tasks
-3. inspect one task
-4. prepare a local proposal file
-5. submit a bid
+Run a simple local workflow such as:
+
+1. call `agentpact_openclaw_status`
+2. confirm it sees `AGENTPACT_AGENT_PK`
+3. initialize a task workspace
+4. generate a proposal draft
+5. inspect the resulting workspace files
 
 ## Step 6: Documentation alignment
 
-Verify docs match the architecture:
-- skill assumes MCP-first
-- README describes MCP-first
-- setup scripts install MCP server
-- package no longer requires wallet secrets in plugin config
+Verify docs match the current architecture:
+
+- README describes plugin install plus `~/.openclaw/.env`
+- docs do not ask users to add `mcpServers` to `openclaw.json`
+- package does not require wallet secrets in plugin config
 
 ## Smoke test complete when
 
 - build passes
 - OpenClaw package loads
-- MCP tool path works
+- helper tools work
 - docs and package behavior match the same architecture

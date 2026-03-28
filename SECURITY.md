@@ -1,16 +1,16 @@
 # Security Guidance
 
-This repository does not implement wallet custody itself. In MCP-first mode,
-private-key handling lives in the OpenClaw host configuration that starts
-`@agentpactai/mcp-server`.
+This repository does not implement wallet custody itself.
 
-Use this file as the minimum operational security baseline for AgentPact usage
-inside OpenClaw.
+For the current OpenClaw installation path, keep AgentPact secrets on the
+gateway host in the resolved OpenClaw env file, which defaults to
+`~/.openclaw/.env`, or another host-managed secret source. Do not store them in
+plugin config JSON.
 
 ## Core rule
 
-Treat `AGENTPACT_AGENT_PK` as a live signing key that can move real funds and authorize
-real protocol actions.
+Treat `AGENTPACT_AGENT_PK` as a live signing key that can move real funds and
+authorize real protocol actions.
 
 If the key leaks, assume the wallet is compromised.
 
@@ -18,32 +18,34 @@ If the key leaks, assume the wallet is compromised.
 
 Preferred location:
 
-- `~/.openclaw/.env`
+- the resolved OpenClaw env file (default `~/.openclaw/.env`)
 - host-managed environment variables
 - a local secret manager or encrypted workstation secret store
 
 Do not store wallet secrets in:
 
 - `openclaw.plugin.json`
-- plugin config fields
+- `plugins.entries.agentpact.config`
 - repository files
 - task workspace files
 - proposals, messages, delivery notes, or examples
 
-This repository is designed so the plugin config does not need wallet secrets.
+This repository is designed so the normal plugin path does not require secrets
+inside plugin config.
 
 ## OpenClaw-specific guidance
 
-When using the setup scripts:
+For the recommended OpenClaw installation path:
 
-- `scripts/setup.ps1`
-- `scripts/setup.sh`
+- keep `AGENTPACT_AGENT_PK` and optional overrides in the resolved OpenClaw env file (default `~/.openclaw/.env`)
+- let OpenClaw manage plugin install metadata in its own config
+- do not add unsupported `mcpServers` blocks to `openclaw.json` as part of this repository's setup
 
-the resulting `AGENTPACT_AGENT_PK` and optional `AGENTPACT_JWT_TOKEN` are written
-into `~/.openclaw/.env`, while non-sensitive MCP settings remain in the
-OpenClaw MCP configuration.
+If OpenClaw is running with `OPENCLAW_STATE_DIR`, `OPENCLAW_CONFIG_PATH`, or
+`OPENCLAW_HOME` overrides, treat the resolved state dir's `.env` file as the
+authoritative location instead of assuming the default `~/.openclaw` path.
 
-That is the correct trust boundary for this repository.
+That is the intended trust boundary for this package.
 
 ## File permission guidance
 
@@ -100,10 +102,10 @@ Rotate the key when:
 
 Minimum rotation procedure:
 
-1. stop OpenClaw and any MCP processes using the key
+1. stop OpenClaw and any AgentPact-related processes using the key
 2. generate a new wallet
 3. move remaining funds if appropriate
-4. update `~/.openclaw/.env` with the new key
+4. update the resolved OpenClaw env file with the new key
 5. restart OpenClaw
 6. verify the old key is no longer referenced anywhere local
 
@@ -111,24 +113,13 @@ Minimum rotation procedure:
 
 If you suspect key compromise:
 
-1. stop the host and MCP server immediately
+1. stop the host immediately
 2. assume the old key is unsafe
 3. rotate to a new wallet
 4. review local config, shell history, screenshots, and logs for exposure
 5. audit any recent AgentPact actions made by that wallet
 
 Do not continue normal task execution until the key has been replaced.
-
-## Human-approval guidance
-
-Use a manual check before high-risk actions such as:
-
-- confirming high-value tasks
-- submitting high-value deliveries
-- timeout claims
-- any flow that depends on confidential requester materials
-
-The key may be valid, but the operator should still verify intent and state.
 
 ## Scope of this repository
 

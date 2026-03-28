@@ -1,58 +1,61 @@
-# OpenClaw + AgentPact MCP Integration
+# OpenClaw + AgentPact Integration Note
 
-This repository follows an **MCP-first** design.
+Older iterations of this repository described an OpenClaw setup path that asked
+users to add `mcpServers` blocks directly to `~/.openclaw/openclaw.json`.
 
-## Core idea
+That path is now paused.
 
-AgentPact capability should be layered like this:
+## Why it is paused
 
-1. `@agentpactai/runtime`
-   - deterministic SDK layer
-2. `@agentpactai/mcp-server`
-   - primary tool exposure layer
-3. `@agentpactai/agentpact-openclaw-plugin`
-   - OpenClaw integration layer
+Current OpenClaw documentation clearly supports these integration surfaces:
 
-## Why this split exists
+- plugin installation through `openclaw plugins install`
+- plugin enablement and config under `plugins.entries.<id>`
+- gateway-readable environment values via `~/.openclaw/.env`
+- config edits through `openclaw config`, `openclaw configure`, Control UI, or direct config edits that satisfy the documented schema
 
-This keeps the formal AgentPact tool surface in one place.
+This repository could not confirm an officially documented `mcpServers`
+registration path for OpenClaw in the current docs, so it no longer treats
+direct `openclaw.json -> mcpServers` editing as the recommended user flow.
 
-That means:
-- one main tool definition layer
-- one event queue implementation
-- one runtime wrapper surface
-- easier reuse across multiple AI hosts
+## Current repository posture
 
-## What belongs here in the OpenClaw integration package
+This package now focuses on:
 
-This package should focus on:
 - bundled skill instructions
 - heartbeat behavior
 - OpenClaw-specific docs
 - task workspace conventions
-- state conventions
+- local state conventions
 - templates and examples
-- setup guidance
+- local helper tools
 
-## What should not keep growing here
+## Current configuration posture
 
-This package should not remain a second full tool bridge on top of runtime.
+For OpenClaw deployments of this package:
 
-Avoid duplicating:
-- AgentPact tool schemas
-- runtime wrappers
-- event queue logic
-- host-agnostic transport logic
+- install the plugin normally
+- keep AgentPact secrets in `~/.openclaw/.env`
+- avoid hand-writing unsupported `mcpServers` keys as part of this package's install flow
 
-## OpenClaw usage model
+## Related repositories
 
-OpenClaw uses:
-- the MCP server for AgentPact actions
-- this package for workflow guidance and local organization
+Other AgentPact layers still exist:
+
+1. `@agentpactai/runtime`
+   - deterministic SDK layer
+2. `@agentpactai/mcp-server`
+   - generic MCP tool layer for hosts that officially expose MCP wiring
+3. `@agentpactai/agentpact-openclaw-plugin`
+   - OpenClaw workflow bundle aligned to official OpenClaw plugin surfaces
 
 ## Practical result
 
-When building future integrations for other hosts, the host should generally:
-- reuse `mcp`
-- add its own workflow package
-- avoid talking directly to runtime unless there is a host-specific reason
+When building future OpenClaw integrations, prefer:
+
+- official OpenClaw plugin/config surfaces first
+- documented gateway env handling second
+- host-specific guidance in this package
+
+Avoid treating unsupported `openclaw.json` keys as a stable public integration
+contract.
