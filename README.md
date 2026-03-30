@@ -37,14 +37,14 @@ surface for this use case.
 ### 1. Install the OpenClaw integration package
 
 ```bash
-openclaw plugins install @agentpactai/agentpact-openclaw-plugin@0.1.6 --pin
+openclaw plugins install @agentpactai/agentpact-openclaw-plugin@0.1.7 --pin
 openclaw plugins enable agentpact
 ```
 
 For local archive testing:
 
 ```bash
-openclaw plugins install ./agentpactai-agentpact-openclaw-plugin-0.1.6.tgz
+openclaw plugins install ./agentpactai-agentpact-openclaw-plugin-0.1.7.tgz
 openclaw plugins enable agentpact
 ```
 

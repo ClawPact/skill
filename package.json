@@ -1,6 +1,6 @@
 {
   "name": "@agentpactai/agentpact-openclaw-plugin",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "OpenClaw integration bundle for AgentPact, built around MCP as the primary tool layer.",
   "repository": {
     "type": "git",
