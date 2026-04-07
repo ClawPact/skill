@@ -15,7 +15,7 @@ const DEFAULT_STATE = {
   lastChatCheck: 0,
   lastEventCursor: "",
   activeTasks: [] as string[],
-  pendingConfirmations: [] as string[],
+  pendingAssignments: [] as string[],
   recentTaskIds: [] as string[],
   processedRevisionKeys: [] as string[],
   processedEventKeys: [] as string[],
@@ -311,12 +311,16 @@ function buildOpenClawStatusSummary(input: {
 async function loadState() {
   const statePath = path.join(await getWorkspaceRoot(), "memory", "agentpact-state.json");
   const current = await readJsonFile<JsonRecord>(statePath);
+  const legacyPendingConfirmations = Array.isArray(current?.pendingConfirmations) ? current.pendingConfirmations : [];
   const merged = {
     ...DEFAULT_STATE,
     ...(current ?? {}),
   };
   merged.activeTasks = uniqueTrimmed(Array.isArray(merged.activeTasks) ? merged.activeTasks : []);
-  merged.pendingConfirmations = uniqueTrimmed(Array.isArray(merged.pendingConfirmations) ? merged.pendingConfirmations : []);
+  merged.pendingAssignments = uniqueTrimmed([
+    ...(Array.isArray(merged.pendingAssignments) ? merged.pendingAssignments : []),
+    ...legacyPendingConfirmations,
+  ]);
   merged.recentTaskIds = keepRecent(uniqueTrimmed(Array.isArray(merged.recentTaskIds) ? merged.recentTaskIds : []));
   merged.processedRevisionKeys = keepRecent(uniqueTrimmed(Array.isArray(merged.processedRevisionKeys) ? merged.processedRevisionKeys : []));
   merged.processedEventKeys = keepRecent(uniqueTrimmed(Array.isArray(merged.processedEventKeys) ? merged.processedEventKeys : []));
@@ -415,8 +419,8 @@ async function ensureWorkspace(task: TaskWorkspaceInput) {
   if (task.status && ["working", "confirmed", "in_revision", "active"].includes(String(task.status).toLowerCase())) {
     state.activeTasks = uniqueTrimmed([...state.activeTasks, taskId]);
   }
-  if (task.status && ["pending_confirmation", "confirmation_pending"].includes(String(task.status).toLowerCase())) {
-    state.pendingConfirmations = uniqueTrimmed([...state.pendingConfirmations, taskId]);
+  if (task.status && ["pending_confirmation", "confirmation_pending", "selected", "assigned"].includes(String(task.status).toLowerCase())) {
+    state.pendingAssignments = uniqueTrimmed([...state.pendingAssignments, taskId]);
   }
   await saveState(state);
 
@@ -438,7 +442,7 @@ async function writeMarkdown(target: string, lines: string[]) {
 function stateSummaryLines(state: JsonRecord) {
   return [
     `activeTasks: ${state.activeTasks.length}`,
-    `pendingConfirmations: ${state.pendingConfirmations.length}`,
+    `pendingAssignments: ${state.pendingAssignments.length}`,
     `recentTaskIds: ${state.recentTaskIds.length}`,
     `processedRevisionKeys: ${state.processedRevisionKeys.length}`,
     `processedEventKeys: ${state.processedEventKeys.length}`,
@@ -698,12 +702,12 @@ function buildProposalMarkdown(input: ProposalInput) {
 }
 
 function buildHeartbeatPlan(state: JsonRecord) {
-  if ((state.pendingConfirmations?.length ?? 0) > 0) {
+  if ((state.pendingAssignments?.length ?? 0) > 0) {
     return {
-      priority: "pending_confirmations",
+      priority: "pending_assignments",
       suggestedActions: [
-        "review pending confirmations first",
-        "run confirmation delta review before confirm/decline",
+        "review selected-task details first",
+        "compare public vs confidential scope before claim or rejection",
       ],
     };
   }
@@ -880,6 +884,8 @@ export default function register(api: PluginApi) {
         set: { type: "object" },
         addActiveTaskIds: { type: "array", items: { type: "string" } },
         removeActiveTaskIds: { type: "array", items: { type: "string" } },
+        addPendingAssignmentIds: { type: "array", items: { type: "string" } },
+        removePendingAssignmentIds: { type: "array", items: { type: "string" } },
         addPendingConfirmationIds: { type: "array", items: { type: "string" } },
         removePendingConfirmationIds: { type: "array", items: { type: "string" } },
         addRecentTaskIds: { type: "array", items: { type: "string" } },
@@ -898,12 +904,20 @@ export default function register(api: PluginApi) {
         const remove = new Set(uniqueTrimmed(params.removeActiveTaskIds));
         state.activeTasks = state.activeTasks.filter((item: string) => !remove.has(item));
       }
-      if (Array.isArray(params.addPendingConfirmationIds)) {
-        state.pendingConfirmations = uniqueTrimmed([...state.pendingConfirmations, ...params.addPendingConfirmationIds]);
+      const addPendingAssignmentIds = [
+        ...(Array.isArray(params.addPendingAssignmentIds) ? params.addPendingAssignmentIds : []),
+        ...(Array.isArray(params.addPendingConfirmationIds) ? params.addPendingConfirmationIds : []),
+      ];
+      if (addPendingAssignmentIds.length > 0) {
+        state.pendingAssignments = uniqueTrimmed([...state.pendingAssignments, ...addPendingAssignmentIds]);
       }
-      if (Array.isArray(params.removePendingConfirmationIds)) {
-        const remove = new Set(uniqueTrimmed(params.removePendingConfirmationIds));
-        state.pendingConfirmations = state.pendingConfirmations.filter((item: string) => !remove.has(item));
+      const removePendingAssignmentIds = [
+        ...(Array.isArray(params.removePendingAssignmentIds) ? params.removePendingAssignmentIds : []),
+        ...(Array.isArray(params.removePendingConfirmationIds) ? params.removePendingConfirmationIds : []),
+      ];
+      if (removePendingAssignmentIds.length > 0) {
+        const remove = new Set(uniqueTrimmed(removePendingAssignmentIds));
+        state.pendingAssignments = state.pendingAssignments.filter((item: string) => !remove.has(item));
       }
       if (Array.isArray(params.addRecentTaskIds)) {
         state.recentTaskIds = keepRecent(uniqueTrimmed([...state.recentTaskIds, ...params.addRecentTaskIds]));
@@ -1172,8 +1186,8 @@ export default function register(api: PluginApi) {
   });
 
   api.registerTool({
-    name: "agentpact_openclaw_review_confirmation",
-    description: "Compare public vs confidential task detail and write a local confirmation delta review.",
+    name: "agentpact_openclaw_review_assignment_delta",
+    description: "Compare public vs confidential task detail and write a local assignment delta review.",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -1197,12 +1211,12 @@ export default function register(api: PluginApi) {
         summary: params.confidentialSummary || params.publicSummary,
         publicMaterials: params.publicMaterials,
         confidentialMaterials: params.confidentialMaterials,
-        status: "confirmation_pending",
+        status: "selected_assignment",
       });
       const review = analyzeConfirmationDelta(params);
-      const reviewPath = path.join(await getWorkspaceRoot(), "agentpact", "tasks", params.taskId, "confirmation-review.md");
+      const reviewPath = path.join(await getWorkspaceRoot(), "agentpact", "tasks", params.taskId, "assignment-review.md");
       await writeMarkdown(reviewPath, [
-        "# Confirmation Review",
+        "# Assignment Review",
         "",
         `- Task: ${params.taskId}`,
         `- Recommendation: ${review.recommendation}`,
@@ -1222,7 +1236,7 @@ export default function register(api: PluginApi) {
         "",
       ]);
       const { state } = await loadState();
-      state.pendingConfirmations = uniqueTrimmed([...state.pendingConfirmations, params.taskId]);
+      state.pendingAssignments = uniqueTrimmed([...state.pendingAssignments, params.taskId]);
       await saveState(state);
       return jsonResult({ ...review, reviewPath });
     },

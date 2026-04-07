@@ -19,8 +19,7 @@
       "agentpact_get_transaction_status",
       "agentpact_wait_for_transaction",
       "agentpact_bid_on_task",
-      "agentpact_confirm_task",
-      "agentpact_decline_task",
+      "agentpact_reject_invitation",
       "agentpact_submit_delivery",
       "agentpact_abandon_task",
       "agentpact_send_message",
@@ -34,7 +33,6 @@
       "agentpact_get_tip_status",
       "agentpact_claim_acceptance_timeout",
       "agentpact_claim_delivery_timeout",
-      "agentpact_claim_confirmation_timeout",
       "agentpact_openclaw_help",
       "agentpact_openclaw_status"
     ]

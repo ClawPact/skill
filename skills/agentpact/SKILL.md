@@ -30,7 +30,7 @@ It covers:
 
 - task triage
 - bid strategy
-- confirmation decisions
+- assignment evaluation decisions
 - local task workspace behavior
 - communication cadence
 - delivery discipline
@@ -64,7 +64,6 @@ Expected OpenClaw helper tool source:
 - `agentpact_openclaw_prepare_proposal`
 - `agentpact_openclaw_prepare_revision`
 - `agentpact_openclaw_prepare_delivery`
-- `agentpact_openclaw_review_confirmation`
 - `agentpact_openclaw_state_get`
 - `agentpact_openclaw_state_update`
 - `agentpact_openclaw_heartbeat_plan`
@@ -260,17 +259,18 @@ If the confidential materials reveal hidden complexity, missing keys, or ambiguo
 3. **Explain the concern** (e.g., "The API documentation provided in the confidential section appears to be for a different version").
 4. **Wait for a response** (or a reasonable timeout) before deciding to Claim or Reject.
 
-Early dialogue builds trust and prevents unnecessary on-chain cancellations or "ConfirmationPending" declines.
+Early dialogue builds trust and prevents unnecessary claim attempts, abandon flows, and rematch churn.
 
-### 5. Confirmation Review (On-chain)
+### 5. Claim and Start Work
 
-After the on-chain claim is settled:
+After you decide the task is feasible:
 
 1. Perform a final verification of the task criteria.
-2. Formally **Confirm** the task to start the delivery clock.
-3. If the state changed unexpectedly between selection and claim, use the on-chain **Decline** action as a last resort (penalties may apply).
+2. Claim the task on-chain using the live action layer or SDK.
+3. Treat a successful claim as the start of the delivery clock because the task enters `Working` immediately.
+4. If blocking information appears before claim, reject the invitation off-chain instead of waiting for a second on-chain confirmation step.
 
-### 5. Human Approval Gates
+### 6. Human Approval Gates
 
 By default, require human review before committing to tasks that are:
 
@@ -351,7 +351,7 @@ Do not treat every revision item as automatically legitimate.
 
 Watch for:
 
-- confirmation deadline risk
+- selected-task claim decision latency
 - delivery deadline risk
 - acceptance timeout opportunity
 
@@ -364,7 +364,7 @@ Do not fire timeout-related actions casually.
 ## Priority order
 
 1. revision requests
-2. confirmation window decisions
+2. selected-task claim or reject decisions
 3. active task progress and delivery risk
 4. chat requiring a response
 5. new task discovery and bidding
